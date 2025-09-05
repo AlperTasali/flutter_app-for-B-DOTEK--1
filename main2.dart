@@ -1,31 +1,34 @@
-import 'dart:convert';
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'dart:convert';//Jsonu dönüştürmek için gerekli kütüphanedir.
+import 'package:flutter/material.dart';//Flutter userınterface bileşenleri için gerekli kütüphanedir.
+import 'package:http/http.dart' as http;//http istekleri için gerekli olan kütüphanedir.
 
 void main() => runApp(const MyApp());
-// 1-) GİRİŞ KISMI
+// 1-) GİRİŞ KISMI:Burası flutter(dart) kodunda hazır olarak verilen giriş kısmıdır.
 class MyApp extends StatelessWidget {
     const MyApp({super.key});
-
+//2-) Fluttur'da kod yazarken emulatorün sağ üst köşesinde bir debug yazısı göreceksin.Bunun anlamı uygulamanın hali hazırda geliştirme aşamasında olduğunu göstermektedir.
     @override
     Widget build(BuildContext context) {
         return MaterialApp(
-            debugShowCheckedModeBanner: false,
+            debugShowCheckedModeBanner: false,//Metodu ile false yazarsan(debug) yazısını kapanır.True dersen debug yazısı yeniden görünür hale gelir.
             home: PageControllerWidget(),
         );
     }
 }
-
+//3-) "enum" benzer şekilde(string, integer, boolean vb.) gibi bir çeşit typedır.Kendi type'ını oluşturmanı sağlar.
 enum ReadForm { readout, lp, obis }
-//2-) SatetfullWidget hareketli widget özelliği ile içeride değişebilen verileri sağlar
+//4-) SatetfullWidget hareketli widget özelliği ile içeride değişebilen verileri saklar.
 class PageControllerWidget extends StatefulWidget {
+//5-) İki çeşit state tipi vardır.Bunlar stateless widget ve statefull widget olarak ikiye ayrılır.Stateless widget içinde değişmeyen ve sabit verileri tutmaya yardımcı olur.Statefull widget ise bunun tam zıttıdır.
     @override
     State<PageControllerWidget> createState() => _PageControllerWidgetState();
+    //6-) Sayfalar arası dinamik geçişi sağlar.CreateState hangi state sınıfının kullanılacağını belirler.
 }
-
 class _PageControllerWidgetState extends State<PageControllerWidget> {
+    //7-) final:Tek seferde atanan,referansı sabit kalan controller'dır."final" kullanılmasının sebeplerinden biri hep aynı controller kullanılsın ki Textfield ile bağlantı kopmasın.
+    //TextEditingController: Butonun içine yazılacak string veya integer değerleri kontrol etmek için kullanılır.
+    //
     final PageController _pageController = PageController();
-
     final _nameCtrl = TextEditingController();
     final _passCtrl = TextEditingController();
     final _deviceCtrl = TextEditingController();
@@ -33,10 +36,13 @@ class _PageControllerWidgetState extends State<PageControllerWidget> {
     Map<String, dynamic>? _finalJson;
     Map<String, dynamic>? _userOverrides;
 
-//3-) Cihaz Bilgileri Kısmında http adresinin bulunduğu kısmı göstermektedir
+//8-) Cihaz Bilgileri Kısmında http adresinin bulunduğu kısmı göstermektedir.Eğer bilgisayarında http://.../api gibi örnek çalışan bir local host varsa flutterdan çağırdığında sen kendi bilgisayarının API'sine istek göndermiş olursun.
+//Bu durumda flutter uygulaman localhost:port üzerinden bilgisayarındaki API ile konuşur.
+//Bunu yapmanın farklı bir yolu daha vardır.
+//Ngrok:Lokal bilgisayarındaki uygulamayı (örnek vermek gerekirsek API) gibi internet üzerinden erişilebilir hale getiren bir araçtır.Yani bilgisayarın portunda çalışan bir uygulmayı ngrok sayesinde herkese geçici bir URL vererek paylaşabilirsin.
     String _apiBaseUrl = "http://127.0.0.1:8000";
 
-
+    //Readout,LP ve Obis oluşturturulmasına yardımcı widgetler.
     ReadForm _activeForm = ReadForm.readout;
 
     bool _showFormPanel = false;
@@ -57,7 +63,10 @@ class _PageControllerWidgetState extends State<PageControllerWidget> {
     String _obPort = "mxc1";
     final _obListCtrl = TextEditingController(text: "1.8.0,32.7.0");
 
-
+//8-) Future:İleride  döndürülecek değeri gösterir ve herhangi bir type ile birlikte kullanılabilir(int, string,boolean, void vb.) gibi.
+//Burada şöyle bir soru sorulabilir.Neden future string ile birlikte değilde void ile birlikte kullanıldı?
+//Fonksiyonun amacı yan etki yapmak yani state'i güncellemek ve API'yı çağırıp ekrana yansıtmaktır.Ayrıca jsonu güncelleyip hatalı mesajı göstermelidir.
+//Eğer void yerine string'i kullanırsan yazıyı(hatalı mesajı) saklar ve ekrana basarsın.
     Future<void> _fetchFromApi() async {
         final raw = _deviceCtrl.text.trim();
         if (raw.isEmpty) {
@@ -75,13 +84,23 @@ class _PageControllerWidgetState extends State<PageControllerWidget> {
         }
 
         try {
+//9-) Uri: uri sınıfı bir URL'yi dartın anlayabileceği URI nesnesine çevirir.
+//"http://" yi adres nesnesi yapar.Böylece (http.post()) bu adresi kullanabilir."await" bu işlem bitene kadar bekle der.Yani belirtiln uri adresine veri gönderir.
+//headers:http isteğinin üst bilgilerini(verinin formatını-->(json)) temsil eder.
+//identifier_type: İçine girilen değerin imei, ip ve seri no'dan hangisi olduğunu temsil etmektedir.
+//identifier:İçine girilen veriyi temsil eder.
             final uri = Uri.parse("$_apiBaseUrl/lookup");
             final response = await http.post(
                 uri,
                 headers: {"Content-Type": "application/json"},
                 body: jsonEncode({"identifier_type": type, "identifier": raw}),
             );
-
+//10-) Farklı http status code aralıkları  bulunmaktadır.
+//100-199--> Bilgilendirme ve geçici cevaplar almak için kullanılır.
+//200-299-->Başarılı API sonuçlarında veri döndürmek için kullanılır.
+//300-399-->Found-moved, permanently veya API call yaparken otomatik yönlendirme yapmak için kullanılır.
+//400-499-->İşlemci hatalarını belirtmek için kullanılır.
+//500-599-->Sunucu hatalarını belirtmek etmek için kullanılır.
             if (response.statusCode == 200) {
                 final decoded = jsonDecode(response.body);
                 if (decoded["ok"] == true && decoded["data"] != null) {
@@ -90,9 +109,10 @@ class _PageControllerWidgetState extends State<PageControllerWidget> {
 
                     // Burada sadece JSON'u sakla, override etme!
                     setState(() => _finalJson = fresh);
-//4-) Saniye başına sayfa geçiş hızını vermektedir.
+//11-) Saniye başına sayfa geçiş hızını vermektedir.
                     _pageController.nextPage(
                         duration: const Duration(milliseconds: 300),
+//12-) "Curves" flutter içinde hazır olarak gelen easing yani ivme/eğri fonksiyonudur.
                         curve: Curves.ease,
                     );
                 } else {
@@ -106,7 +126,7 @@ class _PageControllerWidgetState extends State<PageControllerWidget> {
         }
     }
 
-//5-) Aşağıda verilenler sayesinde ıp, imei ve seri no'nun özelliklerinin uyup uyulmadığı göstermekte.
+//13-) Aşağıda verilenler sayesinde ıp, imei ve seri no'nun özelliklerinin uyup uyulmadığını göstermektedir.
     String? _detectIdentifierType(String input) {
         final v = input.trim();
         if (_isValidIP(v)) return "ip";
@@ -130,21 +150,24 @@ class _PageControllerWidgetState extends State<PageControllerWidget> {
     bool _isValidIMEI(String s) => RegExp(r'^\d{1,15}$').hasMatch(s);
     bool _isValidSerial(String s) =>
         RegExp(r'^(?!\d+$)[A-Za-z0-9_-]{3,32}$').hasMatch(s);
-
+//14-) Map içinde integer ve string değeri bir arada tutan bir type idir.
+//Öncelikle base ve over yani taban ve üst olmak üzere iki tane map belirlenir.
+//_deepMerge adında özel private bir fonksiyon tanımlanır.
     Map<String, dynamic> _deepMerge(
         Map<String, dynamic> base, Map<String, dynamic> over) {
         final out = Map<String, dynamic>.from(base);
         over.forEach((k, v) {
-            if (v is Map && out[k] is Map) {
+            if (v is Map && out[k] is Map) {//Eğer over'daki değer ve base'deki değer map ise o zaman iç içe map vardır ve bunlar derinlemesine birleştirilir.
                 out[k] = _deepMerge(
-                    Map<String, dynamic>.from(out[k]), Map<String, dynamic>.from(v));
+                    Map<String, dynamic>.from(out[k]);
+                    Map<String, dynamic>.from(v));
             } else {
-                out[k] = v;
+                out[k] = v;//Eğer veilen jsondaki over(üstteki) değer map değilse yani içinde sadece string değer varsa o zaman bunu üst tarafa(over'a) yaz.
             }
         });
-        return out;
+        return out;//Sonucu recürsif olarak çağır.
     }
-//6-) Altta verilen hataları ve rengi belirler.
+//15-) Altta verilen hataları ve rengi belirler.
     void _showError(String msg) {
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(msg), backgroundColor: Colors.red),
@@ -195,7 +218,7 @@ class _PageControllerWidgetState extends State<PageControllerWidget> {
             ),
         );
     }
-
+//16-) Giriş sayfası için gerekli olan widgetler.
     Widget _buildLoginPage() {
         return SafeArea(
             child: Center(
@@ -269,7 +292,7 @@ class _PageControllerWidgetState extends State<PageControllerWidget> {
                                             // Burada override’ları saklıyoruz
                                             _userOverrides = result;
                                         });
-                                        _showError("Ayarlar kaydedildi ✅");
+                                        _showError("Ayarlar kaydedildi ✅");//windows + . ile farklı emojiler koyulabilir.Ayrıca (örnek:alt + "9989") ile de farklı emojiler koyulabilir.
                                     }
                                 },
                                 child: const Text("⚙️ Settings"),
@@ -390,8 +413,6 @@ class _PageControllerWidgetState extends State<PageControllerWidget> {
                         ),
 
 
-
-
                         ElevatedButton(
                             onPressed: () {
                                 setState(() => _showFormPanel = !_showFormPanel);
@@ -426,7 +447,7 @@ class _PageControllerWidgetState extends State<PageControllerWidget> {
 
                         const SizedBox(height: 16),
 
-                        // API'den gelen JSON'u göster (sadece üst key isimlerini override et)
+                        // API'den gelen JSON'u göster (sadece üst key isimlerini override ed)
                         Expanded(
                             child: _finalJson == null
                                 ? const Center(child: Text("Henüz veri yok"))
@@ -484,7 +505,9 @@ class _PageControllerWidgetState extends State<PageControllerWidget> {
         );
     }
 
-
+//17-) Ekranda hangi formun yani readout, LP ve Obisten birini seçmek için switch-case kullanılabilir.Buna ek olarak if-else ile de hangi okuma tipinin seçilebileceği kararlaştırılabilir.
+//Ancak if-else "enum" ile uygun çalışmayabilir.
+//switch-case kullanıyor olman sana her duruma uygun bir return yazmana yardımcı olur. 
     Widget _buildSelectedForm() {
         switch (_activeForm) {
             case ReadForm.readout:
@@ -633,23 +656,24 @@ class _PageControllerWidgetState extends State<PageControllerWidget> {
 }
 
 
-
+//18-) İnformtıon kısmında bulunan mavi panel için gerekli olan widget.
 class _FormCard extends StatelessWidget {
     final String title;
     final List<Widget> children;
     const _FormCard({required this.title, required this.children});
-
+//19-)Class ile birlikte this kullanılmasının sebeplerinden biri this ile parametre tanımlanmış olur hem de otomatik olarak sınıfın title değişkenine atamış oluyorsun.
+//Kısaca sınıfın içindeki değişkenlere parametreleri otomatik bağlamak için kullanılır.
     @override
     Widget build(BuildContext context) {
         return Card(
             elevation: 0,
             color:  Colors.lightBlue,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),//Mavi panelin köşelerinin sivriliğini belirlemektedir.
             child: Theme(
                 data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                 child: ExpansionTile(
                     title: Text(title,
-                        style: const TextStyle(
+                        style: const TextStyle(// const kullanılmasının sebeplerinden biri performanstır yani widget değişmiyorsa tekrar build edilmez.
                             color: Colors.white, fontWeight: FontWeight.bold)),
                     children: children
                         .map((w) => Padding(
@@ -707,7 +731,9 @@ class _DateField extends StatelessWidget {
     final DateTime? dateTime;
     final VoidCallback onTap;
     const _DateField({required this.dateTime, required this.onTap});
-
+//20-) Aşağıda toString ve neden padleft kullandın diye bir soru gelebilir.
+//padLeft: Girilen integer değerin kaç basamklı olduğunu görmek için gerekli olan metod idir.
+//toString kullanılmasının sebebine gelecek olursak girilen integer değeri stringe çevirilsin.
     @override
     Widget build(BuildContext context) {
         final text = dateTime == null
@@ -717,7 +743,7 @@ class _DateField extends StatelessWidget {
             "${dateTime!.year} "
             "${dateTime!.hour.toString().padLeft(2, '0')}:"
             "${dateTime!.minute.toString().padLeft(2, '0')}";
-        return InkWell(
+        return InkWell(//Dokunmayı algılayan bir çeşit widget idir.
             onTap: onTap,
             child: InputDecorator(
                 decoration: const InputDecoration(
@@ -757,7 +783,7 @@ class _SettingsPageState extends State<SettingsPage> {
     @override
     void initState() {
         super.initState();
-        // Varsayılan keyler ve mevcut override değerlerini doldur
+        // Varsayılan keyler ve mevcut override değerlerini doldurur.
         final keys = ["comm", "information", "io", "read_rate", "recieve_time"];
         _controllers = {
             for (var k in keys)
